@@ -31,18 +31,21 @@ export default class PartionCanvas extends Vue {
   private initInfo: Canvas.initInfo = {};
   private canvasId = {} as HTMLCanvasElement;
   private canvasContent = {} as CanvasRenderingContext2D;
-  private isDown = false;
+  private isTouchMouse = false;
   private drawData: Canvas.drawDataState = {
     lx: 0,
     ly: 0,
     lr: 0,
     lj: 0,
   };
+  private drawOption: number[] = [];
+  private animationFrameKey = 0;
 
   @Watch("currentTem")
   currentTemHandler(newValue: number, oldValue: number): void {
     if (newValue !== oldValue) {
-      this.initTemperature(newValue);
+      // this.initTemperature(newValue);
+      this.canvasId && this.drawRequestAnimationFrame(newValue, oldValue);
     }
   }
 
@@ -140,18 +143,23 @@ export default class PartionCanvas extends Vue {
       x: circleCenter.x + circleCenter.r * Math.cos(radian),
       y: circleCenter.y + circleCenter.r * Math.sin(radian),
     };
+    this.drawOption = [sliderPoint.x, sliderPoint.y, 0, radian];
     this.draw(sliderPoint.x, sliderPoint.y, 0, radian);
   }
   draw(lx: number, ly: number, lr: number, lj: number) {
-    if (!("slider" in this.el)) return; // 未被初始化
+    const { x, y, r, j } = this.getDrawPoint({ lx, ly, lr, lj });
+    this.drawBottomRadian();
+    this.drawScaleRadian(x, j);
+    this.drawSlider(x, y, r);
+  }
+  getDrawPoint({ lx, ly, lr, lj }: Canvas.drawDataState): Canvas.drawPooint {
+    if (!("slider" in this.el)) return { x: 0, y: 0, j: 0, r: 0 }; // 未被初始化
     const slider = this.el.slider as Canvas.sliderState;
-    const angle = this.el.angle as Canvas.angleState;
     const variable = this.el.variable as Canvas.variableState;
 
     const x = lx || slider.x,
       y = ly || slider.y,
       r = lr || slider.r,
-      // j = lj || angle.eAngle * Math.PI;
       j = lj || variable.eAngle * Math.PI;
     this.canvasContent.clearRect(
       0,
@@ -161,8 +169,62 @@ export default class PartionCanvas extends Vue {
     );
 
     this.drawData = { lx, ly, lr, lj };
+    return { x, y, r, j };
+  }
+  drawSlider(sliderX: number, sliderY: number, sliderR: number) {
+    const slider = this.el.slider as Canvas.sliderState;
 
+    // 滑块
+    this.canvasContent.beginPath();
+    this.canvasContent.fillStyle = slider.color;
+    this.canvasContent.shadowOffsetX = 0; // 阴影Y轴偏移
+    this.canvasContent.shadowOffsetY = 0; // 阴影X轴偏移
+    this.canvasContent.shadowBlur = 15; // 模糊尺寸
+    // this.canvasContent.spread = -2;
+    this.canvasContent.shadowColor = "rgba(0, 0, 0, 0.49)";
+    this.canvasContent.arc(sliderX, sliderY, sliderR, 0, Math.PI * 2, false); // 绘制滑块内侧
+    this.canvasContent.fill();
+  }
+  drawScaleRadian(sliderX: number, angle: number) {
+    // 绘制可变弧
     const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
+
+    this.canvasContent.beginPath();
+    this.canvasContent.shadowOffsetX = 0; // 阴影Y轴偏移
+    this.canvasContent.shadowOffsetY = 0; // 阴影X轴偏移
+    this.canvasContent.shadowBlur = 0; // 模糊尺寸
+    // this.canvasContent.spread = 0;
+    this.canvasContent.arc(
+      circleCenter.x,
+      circleCenter.y,
+      circleCenter.r,
+      Math.PI * 0.85,
+      angle,
+      false
+    );
+    let gradient = this.canvasContent.createLinearGradient(0, 0, sliderX, 0);
+
+    this.canvasGradient;
+    const list = Object.keys(this.canvasGradient);
+
+    for (let index = 0; index < list.length; index++) {
+      gradient.addColorStop(
+        Number(list[index]),
+        this.canvasGradient[Number(list[index])]
+      );
+    }
+
+    // gradient.addColorStop("0","rgba(0,196,140,1)");
+    // gradient.addColorStop("0.5","rgba(0,196,140,1)");
+    // gradient.addColorStop("1.0","rgba(2,211,237,1)");
+    this.canvasContent.strokeStyle = gradient;
+    this.canvasContent.lineCap = "round";
+    this.canvasContent.lineWidth = 10;
+    this.canvasContent.stroke();
+  }
+  drawBottomRadian() {
+    const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
+    const angle = this.el.angle as Canvas.angleState;
 
     // 底圆弧
     this.canvasContent.beginPath();
@@ -183,55 +245,9 @@ export default class PartionCanvas extends Vue {
     this.canvasContent.lineCap = "round";
     this.canvasContent.lineWidth = 10;
     this.canvasContent.stroke();
-
-    // 绘制可变弧
-
-    this.canvasContent.beginPath();
-    this.canvasContent.shadowOffsetX = 0; // 阴影Y轴偏移
-    this.canvasContent.shadowOffsetY = 0; // 阴影X轴偏移
-    this.canvasContent.shadowBlur = 0; // 模糊尺寸
-    // this.canvasContent.spread = 0;
-    this.canvasContent.arc(
-      circleCenter.x,
-      circleCenter.y,
-      circleCenter.r,
-      Math.PI * 0.85,
-      j,
-      false
-    );
-    let gradient = this.canvasContent.createLinearGradient(0, 0, x, 0);
-
-    this.canvasGradient;
-    const list = Object.keys(this.canvasGradient);
-
-    for (let index = 0; index < list.length; index++) {
-      gradient.addColorStop(
-        Number(list[index]),
-        this.canvasGradient[Number(list[index])]
-      );
-    }
-
-    // gradient.addColorStop("0","rgba(0,196,140,1)");
-    // gradient.addColorStop("0.5","rgba(0,196,140,1)");
-    // gradient.addColorStop("1.0","rgba(2,211,237,1)");
-    this.canvasContent.strokeStyle = gradient;
-    this.canvasContent.lineCap = "round";
-    this.canvasContent.lineWidth = 10;
-    this.canvasContent.stroke();
-
-    // 滑块
-    this.canvasContent.beginPath();
-    this.canvasContent.fillStyle = slider.color;
-    this.canvasContent.shadowOffsetX = 0; // 阴影Y轴偏移
-    this.canvasContent.shadowOffsetY = 0; // 阴影X轴偏移
-    this.canvasContent.shadowBlur = 15; // 模糊尺寸
-    // this.canvasContent.spread = -2;
-    this.canvasContent.shadowColor = "rgba(0, 0, 0, 0.49)";
-    this.canvasContent.arc(x, y, r, 0, Math.PI * 2, false); // 绘制滑块内侧
-    this.canvasContent.fill();
   }
   OnMouseMove(e: MouseEvent | TouchEvent) {
-    if (this.isDown) {
+    if (this.isTouchMouse) {
       const mousePoint = this.getMousePoint(e) || {
         x: undefined,
         y: undefined,
@@ -253,8 +269,7 @@ export default class PartionCanvas extends Vue {
       if (!slideMove.x) return;
 
       const tar = this.pointChange(slideMove, "point2canvas");
-      console.log("tar", tar.x + tar.y);
-
+      this.drawOption = [tar.x, tar.y, slider.r, slideMove.z];
       this.draw(tar.x, tar.y, slider.r, slideMove.z);
     }
   }
@@ -301,15 +316,15 @@ export default class PartionCanvas extends Vue {
   currentTemChange(e: number) {
     this.$emit("update:currentTem", e);
   }
-
   getMoveTo(lx: number, ly: number): Canvas.slideMove {
-    if (!this.isDown) return { x: 0, y: 0, z: 0 };
+    if (!this.isTouchMouse) return { x: 0, y: 0, z: 0 };
     let res = {};
 
     // 由滑块粗略位置 -> 滑块精准位置 -> 最终转角角度
     // 计算滑块在园内的精确坐标信息
     // f(x)=arctanx则是求正切值为x的对袭应的是多少角度(或弧度)
     const atanMouse = Math.atan(ly / lx);
+
     const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
     const angle = this.el.angle as Canvas.angleState;
     let mousePoint = {
@@ -357,7 +372,8 @@ export default class PartionCanvas extends Vue {
   }
   OnMouseUp() {
     //鼠标释放
-    this.isDown = false;
+    this.sliderNarrow();
+    this.isTouchMouse = false;
   }
   OnMouseDown(e: MouseEvent | TouchEvent) {
     e.preventDefault();
@@ -369,43 +385,145 @@ export default class PartionCanvas extends Vue {
       mousePoint.x,
       mousePoint.y
     );
-    // console.log("down", isPointInPath);
-
     if (isPointInPath) {
-      this.isDown = true;
+      this.isTouchMouse = true;
+      this.sliderEnlarge(mousePoint);
     } else {
-      this.isDown = false;
+      this.isTouchMouse = false;
     }
   }
-  event() {
-    //事件绑定
-    this.canvasId.addEventListener(
-      "mousedown",
-      this.OnMouseDown.bind(this),
-      false
-    );
-    this.canvasId.addEventListener(
-      "mousemove",
-      this.OnMouseMove.bind(this),
-      false
-    );
-    this.canvasId.addEventListener("mouseup", this.OnMouseUp.bind(this), false);
-    this.canvasId.addEventListener(
-      "touchstart",
-      this.OnMouseDown.bind(this),
-      false
-    );
-    this.canvasId.addEventListener(
-      "touchmove",
-      this.OnMouseMove.bind(this),
-      false
-    );
-    this.canvasId.addEventListener(
-      "touchendend",
-      this.OnMouseUp.bind(this),
-      false
-    );
+  sliderEnlarge(mousePoint: Canvas.mousePoint) {
+    const slider = this.el.slider as Canvas.sliderState;
+    slider.r = (this.canvasId.height * 20) / 400;
+    console.log("@", this.drawOption);
+
+    this.draw(this.drawOption[0], this.drawOption[1], 0, this.drawOption[3]);
   }
+  sliderNarrow() {
+    const slider = this.el.slider as Canvas.sliderState;
+    slider.r = (this.canvasId.height * 11) / 400;
+
+    this.draw(this.drawOption[0], this.drawOption[1], 0, this.drawOption[3]);
+  }
+  drawRequestAnimationFrame(newVal: number, oldVal: number) {
+    if (this.isTouchMouse) return;
+    // 获取当前滑块距离，目标滑块距离，变量公式
+    const angle = this.el.angle as Canvas.angleState;
+    const temperature = this.el.temperature as Canvas.temperatureState;
+    const section = temperature.max - temperature.min; // 数值区间
+    const partition = (angle.e - angle.s) / section; // 刻度范围
+
+    const dVal = newVal - oldVal;
+    const changeTemTotal = this.currentTem - dVal;
+    const isPositive = dVal > 0;
+
+    // const changeRadian =
+    //   (angle.s + (oldVal - temperature.min) * partition) * Math.PI;
+    // 计算滑块点
+    // const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
+    // const sliderPoint = {
+    //   x: circleCenter.x + circleCenter.r * Math.cos(oldVal + changeRadian),
+    //   y: circleCenter.y + circleCenter.r * Math.sin(oldVal + changeRadian),
+    // };
+    const oldValRadian =
+      (angle.s + (oldVal - temperature.min) * partition) * Math.PI;
+    const changeRadian = (newVal - oldVal) * partition * Math.PI;
+    // this.dueRequestAnimationFrame(oldVal, oldValRadian, changeRadian);
+    // this.loopRequestAnimationFrame(changeRadian, 1000);
+    const timeVal = changeRadian / 10;
+    this.tes(oldValRadian, changeRadian, timeVal, 10);
+  }
+  // dueRequestAnimationFrame(
+  //   oldVal: number,
+  //   oldValRadian: number,
+  //   changeRadian: number
+  // ) {
+  //   const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
+  //   const sliderPoint = {
+  //     x:
+  //       circleCenter.x + circleCenter.r * Math.cos(oldValRadian + changeRadian),
+  //     y:
+  //       circleCenter.y + circleCenter.r * Math.sin(oldValRadian + changeRadian),
+  //   };
+  // }
+  tes(
+    oldValRadian: number,
+    changeRadian: number,
+    timeVal: number,
+    times: number
+  ) {
+    const circleCenter = this.el.circleCenter as Canvas.circleCenterState;
+    const sliderPoint = {
+      x: circleCenter.x + circleCenter.r * Math.cos(oldValRadian + timeVal),
+      y: circleCenter.y + circleCenter.r * Math.sin(oldValRadian + timeVal),
+    };
+    if (!times) {
+      console.log("*", this.drawOption);
+      window.cancelAnimationFrame(this.animationFrameKey);
+    } else {
+      this.draw(sliderPoint.x, sliderPoint.y, 0, oldValRadian + timeVal);
+      this.drawOption = [
+        sliderPoint.x,
+        sliderPoint.y,
+        0,
+        oldValRadian + timeVal,
+      ];
+
+      this.animationFrameKey = window.requestAnimationFrame(() =>
+        this.tes(oldValRadian + timeVal, changeRadian, timeVal, times - 1)
+      );
+    }
+  }
+  loopRequestAnimationFrame(
+    changeRadian: number,
+    timeStamp: number,
+    remakeTime = 0
+  ) {
+    const times = +new Date();
+    if (remakeTime && times - remakeTime > timeStamp) {
+      window.cancelAnimationFrame(this.animationFrameKey);
+      console.log("取消");
+    } else if (times - remakeTime > 1000 / 60) {
+      console.log("run runrun ", times - remakeTime, remakeTime);
+      // this.draw(sliderPoint.x, sliderPoint.y, 0, radian);
+      this.animationFrameKey = window.requestAnimationFrame(() =>
+        this.loopRequestAnimationFrame(changeRadian, timeStamp, times)
+      );
+    } else {
+      console.log("not run", times - remakeTime);
+    }
+    // const portion = changeRadian / timeStamp / 60;
+  }
+  // runRequestAnimationFrame() {}
+  // event() {
+  //   //事件绑定
+  //   this.canvasId.addEventListener(
+  //     "mousedown",
+  //     this.OnMouseDown.bind(this),=-
+  //     false
+  //   );
+  //   this.canvasId.addEventListener(
+  //     "mousemove",
+  //     this.OnMouseMove.bind(this),
+  //     false
+  //   );
+  //   this.canvasId.addEventListener("mouseup", this.OnMouseUp.bind(this), false);
+  //   this.canvasId.addEventListener(
+  //     "touchstart",
+  //     this.OnMouseDown.bind(this),
+  //     false
+  //   );
+  //   this.canvasId.addEventListener(
+  //     "touchmove",
+  //     this.OnMouseMove.bind(this),
+  //     false
+  //   );
+  //   this.canvasId.addEventListener(
+  //     "touchendend",
+  //     this.OnMouseUp.bind(this),
+  //     false
+  //   );
+  // }
 }
 </script>
 <style lang="less" scoped>

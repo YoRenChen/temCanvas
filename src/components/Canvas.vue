@@ -1,5 +1,10 @@
 <template>
   <div>
+    <input
+      type="number"
+      :value="ctemp"
+      @change="(e) => (ctemp = +e.target.value)"
+    />
     <PartitionCanvans
       :currentTem.sync="ctemp"
       :canvasGradient="variableColor[cmode].canvasGradient"
@@ -17,11 +22,11 @@ import PartitionCanvans from "./partitionCanvans/src/canvas.vue";
   },
 })
 export default class Canvas extends Vue {
-  private ctemp = 20;
+  private ctemp = 21;
   private cmode = "snow";
   private variableColor = {
     auto: {
-      canvasGradient: { 0: "#00C48C", 0.5: "#00C48C", 1: "#02D3ED" },
+      canvasGradient: { 0: "#00C48C", 1: "#00C48C" },
       title: "#09B66D",
       bg: "#D1F1E3",
     },

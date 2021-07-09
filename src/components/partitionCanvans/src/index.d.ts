@@ -58,5 +58,11 @@ namespace Canvas {
     x: number;
     y: number;
   };
+  type drawPooint = {
+    x: number;
+    y: number;
+    r: number;
+    j: number;
+  };
 }
 export default Canvas;
