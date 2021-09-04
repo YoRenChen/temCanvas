@@ -60,6 +60,19 @@ class Color extends Basic{
   }
 }
 
+/**
+* Circle 担任什么职能？
+* 1. 基础图表处理
+* 2. 生成 Dom 的创建, 为空时创建 canvasDom
+*/
+class Circle extends Color {
+  
+}
+
+/**
+* GradualCircle 职能是什么？
+* 1. 生成渐变环
+*/
 class GradualCircle extends Color {
   constructor(props) {
     super()
