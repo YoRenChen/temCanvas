@@ -1,4 +1,24 @@
-class Color {
+class Basic {
+  // 两数相加/相乘
+  addNum(num1, num2) {
+    const pow = this.getPow(num1, num2)
+    return (num1 * pow + num2 * pow) / pow
+  }
+  // 两数相乘
+  multiplyNum(num1, num2) {
+    const pow = this.getPow(num1, num2)
+    return (num1 * pow * num2 * pow) / Math.pow(pow, 2)
+  }
+  // 获取两数小数点的最大倍数
+  getPow(num1, num2) {
+    const numStr1 = num1.toString().split(".")[1] || ''
+    const numStr2 = num2.toString().split(".")[1] || ''
+    const length1 = numStr1.length
+    const length2 = numStr2.length
+    return Math.pow(10, Math.max(length1, length2))
+  }
+}
+class Color extends Basic{
   rgbToHex(r, g, b) {
     var hex = ((r<<16) | (g<<8) | b).toString(16);
     return "#" + new Array(Math.abs(hex.length-7)).join("0") + hex;
@@ -37,26 +57,6 @@ class Color {
         gStep = (endCol[1] - startCol[1]),
         bStep = (endCol[2] - startCol[2]);
     return [rStep, gStep, bStep]
-  }
-
-  // 两数相加/相乘
-  addNum(num1, num2) {
-    const pow = this.getPow(num1, num2)
-    return (num1 * pow + num2 * pow) / pow
-  }
-
-  // 两数相乘
-  multiplyNum(num1, num2) {
-    const pow = this.getPow(num1, num2)
-    return (num1 * pow * num2 * pow) / Math.pow(pow, 2)
-  }
-
-  getPow(num1, num2) {
-    const numStr1 = num1.toString().split(".")[1] || ''
-    const numStr2 = num2.toString().split(".")[1] || ''
-    const length1 = numStr1.length
-    const length2 = numStr2.length
-    return Math.pow(10, Math.max(length1, length2))
   }
 }
 
